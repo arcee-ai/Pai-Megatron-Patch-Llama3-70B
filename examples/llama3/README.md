@@ -14,7 +14,7 @@
       * [Run Evaluation Tools](#Run-Evaluation-Tools)
 
 # Installation
-It is recommended to use the official NVIDIA container `nvcr.io/nvidia/pytorch:23.12-py3` to create the container.
+It is recommended to use the official NVIDIA container `nvcr.io/nvidia/pytorch:24.04-py3` to create the container.
 
 ```bash
 git clone --recurse-submodules https://github.com/alibaba/Pai-Megatron-Patch.git

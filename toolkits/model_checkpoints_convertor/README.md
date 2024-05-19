@@ -1,13 +1,14 @@
-## hf-to-megatron
-hf-to-megatron是一款模型ckpt转换工具，方便用户低门槛的将huggingface版的ckpt转换到megatron格式，以使用megatron-lm的分布式能力训练LLM大模型。转换后的模型需配合PAI-Megatron-Patch代码库使用。目前已经支持下列模型：
+### hf-to-megatron
 
-+ bloom
-+ llama/alpaca
-+ chatglm
-+ galactica
-+ glm
-+ glm130B
-+ falcon
-+ starcoder
+**hf-to-megatron** is a model checkpoint conversion tool designed to enable users to easily convert Hugging Face checkpoints to Megatron format. This allows users to leverage the distributed training capabilities of Megatron-LM for training large language models (LLMs). The converted models are intended to be used with the PAI-Megatron-Patch codebase. The following models are currently supported:
 
-相关转换后的模型存放在：oss://atp-modelzoo/release/models/pai-megatron-patch/
+- BLOOM
+- LLaMA/Alpaca
+- ChatGLM
+- Galactica
+- GLM
+- GLM130B
+- Falcon
+- StarCoder
+
+The converted models are stored at: `oss://atp-modelzoo/release/models/pai-megatron-patch/`

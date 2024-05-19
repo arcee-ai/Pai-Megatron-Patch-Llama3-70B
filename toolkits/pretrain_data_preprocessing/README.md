@@ -1,39 +1,48 @@
-## 数据预处理
-建议在PAI灵骏智算服务中的DSW实例中准备预训练数据，以下以中文wudao2.0数据集的准备流程为例，给出数据预处理指引：
-下载WuDaoCorpora2.0开源数据集到/mnt/workspace/llama3-datasets工作目录下，我们提供了部分样例数据作为示例，用户可通过以下命令下载和解压：
+## Data Preprocessing
+
+It is recommended to prepare pretraining data in a DSW instance within the PAI Lingjun Intelligent Computing Service. Here, the preparation process for the Chinese WuDao 2.0 dataset is used as an example to provide data preprocessing guidelines:
+
+Download the WuDaoCorpora2.0 open-source dataset to the `/mnt/workspace/llama3-datasets` working directory. We provide some sample data as an example, which can be downloaded and decompressed with the following commands:
+
 ```shell
 wget https://atp-modelzoo.oss-cn-hangzhou.aliyuncs.com/release/datasets/WuDaoCorpus2.0_base_sample.tgz
 tar zxvf WuDaoCorpus2.0_base_sample.tgz 
 ```
-假设解压后的文件夹命名为wudao_200g，该文件夹中的**原始**wudao数据集的格式和大小如下截图所示：
-![image.png](https://intranetproxy.alipay.com/skylark/lark/0/2023/png/226643/1681404415062-92c59f2f-380a-4357-baf8-6f626ad5a217.png#clientId=u90be3297-6831-4&from=paste&height=213&id=NOUVT&originHeight=426&originWidth=1054&originalType=binary&ratio=2&rotation=0&showTitle=false&size=154924&status=done&style=none&taskId=ua99b6661-8759-4a1e-8b97-2cd86736261&title=&width=527)
-我们为Megatron-LM训练准备了数据预处理流程，您可以根据自己的需要选择不同的处理方式。
-#### Megatron-LM训练数据准备
-mmap数据是一种预先执行tokenize处理的数据格式，可以极大减少训练微调过程中等待数据读入的时间，当数据量极大时，优势显著。
 
-1. 对Wudao数据执行数据集清洗并进行文件格式转换，具体流程可参考如下的bash脚本，最终生成汇总的**merged_wudao_cleaned.json**。
+Assume the decompressed folder is named `wudao_200g`. The format and size of the **original** WuDao dataset in this folder are shown in the screenshot below:
+![image.png](https://intranetproxy.alipay.com/skylark/lark/0/2023/png/226643/1681404415062-92c59f2f-380a-4357-baf8-6f626ad5a217.png#clientId=u90be3297-6831-4&from=paste&height=213&id=NOUVT&originHeight=426&originWidth=1054&originalType=binary&ratio=2&rotation=0&showTitle=false&size=154924&status=done&style=none&taskId=ua99b6661-8759-4a1e-8b97-2cd86736261&title=&width=527)
+
+We have prepared a data preprocessing process for Megatron-LM training, which you can choose according to your needs.
+
+### Megatron-LM Training Data Preparation
+
+MMap data is a pre-tokenized data format that can significantly reduce the time spent waiting for data loading during training and fine-tuning, especially when the dataset is very large.
+
+1. Clean the WuDao dataset and convert the file format. You can refer to the following bash script for the specific process, which will generate a consolidated **merged_wudao_cleaned.json**.
+
 ```bash
 #! /bin/bash
 set -ex
-# 请在此处设置原始数据所在路径
+# Set the path of the original data here
 data_dir=/mnt/workspace/llama3-datasets/wudao_200g
 
-#开始数据清洗流程
+# Start data cleaning process
 dataset_dir=$(dirname $data_dir)
 mkdir -p ${dataset_dir}/cleaned_wudao_dataset
 cd ${dataset_dir}/cleaned_wudao_dataset
 wget https://atp-modelzoo-wlcb-pai.oss-cn-wulanchabu.aliyuncs.com/release/models/pai-megatron-patch/llama2-codes/preprocess_wudao2.py
-# 此处与上一节不同，增加了key参数设为text
+# This differs from the previous section by adding the key parameter set to text
 python preprocess_wudao2.py -i ${data_dir} -o ${dataset_dir}/cleaned_wudao_dataset -k text -p 32
 
-# 合并清洗后的数据
+# Merge cleaned data
 mkdir ${dataset_dir}/wudao
 cd ${dataset_dir}/wudao
 find ${dataset_dir}/cleaned_wudao_dataset -name "*.json" -exec cat {} + > ${dataset_dir}/wudao/merged_wudao_cleaned.json
 rm -rf ${dataset_dir}/cleaned_wudao_dataset
-
 ```
-脚本执行完成后，llama3-datasets内部文件结构如下，新增一个wudao文件夹：
+
+After running the script, the internal file structure of `llama3-datasets` will look like this, with a new `wudao` folder:
+
 ```bash
 llama3-datasets
 ├── wudao_200g 
@@ -41,26 +50,27 @@ llama3-datasets
     └── merged_wudao_cleaned.json
 ```
 
-2. 利用第一节生成的**merged_wudao_cleaned.json**文件，将数据拆分成若干组并压缩，便于后续实现多线程处理：
+2. Use the **merged_wudao_cleaned.json** file generated in the first step to split the data into several groups and compress them for subsequent multi-threaded processing:
+
 ```bash
 apt-get update
 apt-get install zstd
 
-# 此处设置分块数为10，如数据处理慢可设置稍大
+# Set the number of chunks to 10. If data processing is slow, set it slightly larger
 NUM_PIECE=10
 
-# 对merged_wudao_cleaned.json文件进行处理
+# Process the merged_wudao_cleaned.json file
 mkdir -p ${dataset_dir}/cleaned_zst/
-# 查询数据总长度，对数据进行拆分
+# Query total length of the data and split it
 NUM=$(sed -n '$=' ${dataset_dir}/wudao/merged_wudao_cleaned.json)
-echo "total line of dataset is $NUM, data will be split into $NUM_PIECE pieces for processing"
+echo "Total line of dataset is $NUM, data will be split into $NUM_PIECE pieces for processing"
 NUM=`expr $NUM / $NUM_PIECE`
-echo "each group is processing $NUM sample"
+echo "Each group is processing $NUM samples"
 split_dir=${dataset_dir}/split
 mkdir $split_dir
 split -l $NUM --numeric-suffixes --additional-suffix=.jsonl ${dataset_dir}/wudao/merged_wudao_cleaned.json $split_dir/
 
-# 数据压缩
+# Data compression
 o_path=${dataset_dir}/cleaned_zst/
 mkdir -p $o_path
 files=$(ls $split_dir/*.jsonl)
@@ -71,43 +81,47 @@ do
 done
 rm -rf $split_dir
 rm ${dataset_dir}/wudao/merged_wudao_cleaned.json
-
 ```
-脚本执行完成后，llama3-datasets内部文件结构如下，新增一个cleaned_zst文件夹，每个子文件夹里有10个压缩文件：
+
+After running the script, the internal file structure of `llama3-datasets` will look like this, with a new `cleaned_zst` folder containing 10 compressed files in each subfolder:
+
 ```bash
 llama3-datasets
 ├── wudao_200g
 ├── wudao
 └── cleaned_zst
     ├── 00.jsonl.zst
-		│   ...
+    │   ...
     └── 09.jsonl.zst
 ```
 
-3. 制作MMAP格式预训练数据集。
+3. Create MMAP format pretraining dataset.
 
-前往[Pai-Megatron-Patch](https://github.com/alibaba/Pai-Megatron-Patch)开源网站获取Megatron模型训练工具Pai-Megatron-Patch源代码并拷贝到工作目录/mnt/workspace/下。
+Go to the [Pai-Megatron-Patch](https://github.com/alibaba/Pai-Megatron-Patch) open-source website to get the Megatron model training tool Pai-Megatron-Patch source code and copy it to the working directory `/mnt/workspace/`.
+
 ```bash
-# 开源网站获取训练代码
+# Get the training code from the open-source website
 git clone --recurse-submodules https://github.com/alibaba/Pai-Megatron-Patch.git
 ```
 
-在DSW的Terminal中进入代码目录：/mnt/workspace/Pai-Megatron-Patch/toolkits/pretrain_data_preprocessing。查看run_make_pretraining_dataset.sh脚本内容。里面有5个启动参数需要在运行时输入，具体参数列表如下：
-```
-MEGATRON_PATCH_PATH=$1             # 设置Megatron Patch的代码路径
-input_data_dir=$2                  # 打包后的wudao数据集的文件夹路径
-tokenizer=$3                       # llamabpe
-output_data_dir=$4                 # 输出到bin和idx文件目录  
-load_dir=$5                        # tokenizer_config.json文件路径
-```
-运行示例如下所示：
-```bash
+In the DSW Terminal, go to the code directory: `/mnt/workspace/Pai-Megatron-Patch/toolkits/pretrain_data_preprocessing`. Check the `run_make_pretraining_dataset.sh` script. It has five startup parameters that need to be input during execution. The parameter list is as follows:
 
-# 请在此处设置数据集路径和工作路径
+```
+MEGATRON_PATCH_PATH=$1             # Set the path of the Megatron Patch code
+input_data_dir=$2                  # Path of the packaged wudao dataset folder
+tokenizer=$3                       # llamabpe
+output_data_dir=$4                 # Directory for output bin and idx files  
+load_dir=$5                        # Path of the tokenizer_config.json file
+```
+
+Here is an example of running the script:
+
+```bash
+# Set the dataset path and working path here
 export dataset_dir=/mnt/workspace/llama3-datasets
 export WORK_DIR=/mnt/workspace
 
-# 分别为训练集、验证集生成mmap格式预训练数据集
+# Generate mmap format pretraining datasets for training and validation sets
 cd ${WORK_DIR}/Pai-Megatron-Patch/toolkits/pretrain_data_preprocessing
 bash run_make_pretraining_dataset.sh \
 ../.. \
@@ -117,7 +131,9 @@ ${dataset_dir}/ \
 ${WORK_DIR}/llama3-ckpts/Meta-Llama-3-8B
 rm -rf ${dataset_dir}/cleaned_zst
 ```
-脚本执行完成后，llama3-datasets内部文件结构如下，wudao文件夹里有2个名字相同后缀不同的mmap文件：
+
+After running the script, the internal file structure of `llama3-datasets` will look like this, with two files in the `wudao` folder having the same name but different extensions:
+
 ```bash
 llama3-datasets
 ├── wudao_200g
@@ -125,8 +141,11 @@ llama3-datasets
    ├── wudao_llama3bpe_content_document.bin
    └── wudao_llama3bpe_content_document.idx
 ```
-#### 小规模预处理数据下载试用
-为方便用户试用，我们也提供了已经处理好的小规模数据，可直接下载使用
+
+### Small-scale Preprocessed Data Download for Trial Use
+
+To facilitate user trials, we also provide preprocessed small-scale data that can be downloaded and used directly:
+
 ```bash
 cd /mnt/workspace/llama3-datasets
 wget https://atp-modelzoo-wlcb-pai.oss-cn-wulanchabu.aliyuncs.com/release/models/pai-megatron-patch/llama3-datasets/wudao_llama3bpe_content_document.bin

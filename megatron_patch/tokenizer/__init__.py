@@ -276,13 +276,14 @@ def build_tokenizer(args):
     elif args.patch_tokenizer_type == 'LLama3Tokenizer':
         from megatron.core.datasets.megatron_tokenizer import MegatronTokenizer
         class _LLama3Tokenizer(MegatronTokenizer):
-            def __init__(self, tokenizer_path, extra_vocab_size):
+            def __init__(self, tokenizer_path, extra_vocab_size, seq_length):
                 super().__init__(tokenizer_path)
                 self.tokenizer = AutoTokenizer.from_pretrained(
                     tokenizer_path,
                     padding_side="right",
                     use_fast=False,
-                    trust_remote_code=True
+                    trust_remote_code=True,
+                    model_max_length=seq_length,
                 )
                 self.extra_vocab_size = extra_vocab_size
 
@@ -316,7 +317,7 @@ def build_tokenizer(args):
             def pad_token_id(self):
                 return self.tokenizer.pad_token_id
 
-        tokenizer = _LLama3Tokenizer(args.load, args.extra_vocab_size)
+        tokenizer = _LLama3Tokenizer(args.load, args.extra_vocab_size, args.seq_length)
         args.padded_vocab_size = tokenizer.vocab_size
 
     elif args.patch_tokenizer_type == 'VicunaTokenizerFromHF':

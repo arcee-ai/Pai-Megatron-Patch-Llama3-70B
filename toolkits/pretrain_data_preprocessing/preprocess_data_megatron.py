@@ -23,7 +23,6 @@ except ImportError:
 from megatron.core.datasets import indexed_dataset
 from megatron_patch.tokenizer import build_tokenizer
 
-
 class IdentitySplitter(object):
     def tokenize(self, *text):
         return text
@@ -221,7 +220,7 @@ def get_args():
         '--patch-tokenizer-type',
         type=str,
         required=True,
-        choices=['Qwen2Tokenizer', 'LLamaTokenizer'],
+        choices=['Qwen2Tokenizer', 'LLamaTokenizer','LLama3Tokenizer'],
         help='What type of tokenizer to use.',
     )
     group.add_argument('--load',
@@ -231,12 +230,12 @@ def get_args():
 
     group.add_argument('--seq-length',
                        type=int,
-                       default=2048,
+                       default=4096,
                        help='sequence length')
 
     group.add_argument('--extra-vocab-size',
                        type=int,
-                       default=0,
+                       default=256,
                        help='extra_vocab_size')
 
     args = parser.parse_args()
@@ -284,6 +283,7 @@ def main():
                 "nltk library required for sentence splitting is not available.")
 
     in_ss_out_names = []
+
     if args.partitions == 1:
         file_name, extension = os.path.splitext(args.input)
         sentence_split_file = file_name + "_ss" + extension

@@ -280,11 +280,12 @@ def convert_checkpoint_from_transformers_to_megatron(args):
     tracker_filepath = os.path.join(args.save_path, "latest_checkpointed_iteration.txt")
     with open(tracker_filepath, "w") as f:
         f.write("release")
-
+    
     # create `release` dir in args.load_path
     release_dir = os.path.join(args.save_path, "release")
     os.makedirs(release_dir, exist_ok=True)
     config = AutoConfig.from_pretrained(args.load_path)
+
     # megatron args
     megatron_args = {
         "orig_vocab_size": config.vocab_size,
@@ -300,6 +301,7 @@ def convert_checkpoint_from_transformers_to_megatron(args):
         setattr(margs, k, v)
 
     state_dict = AutoModelForCausalLM.from_pretrained(args.load_path).state_dict()
+
     internal_state_dict = {}
     for layer_id in range(config.num_hidden_layers):
 
@@ -338,6 +340,12 @@ def convert_checkpoint_from_transformers_to_megatron(args):
     internal_state_dict["transformer.word_embeddings.weight"] = state_dict['model.embed_tokens.weight']
     internal_state_dict["transformer.final_layernorm.weight"] = state_dict['model.norm.weight']
     internal_state_dict["transformer.lm_head.weight"] = state_dict['lm_head.weight']
+
+    # # Print the layer names
+    # print("Layer names in the model state dictionary:")
+    # for layer_name in internal_state_dict.keys():
+    #     print(layer_name)
+
 
     output_state_dict = []
     for i in range(args.target_tensor_model_parallel_size):
@@ -799,6 +807,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser = add_args(parser)
     args = parser.parse_args()
+
     if args.convert_checkpoint_from_megatron_to_transformers:
         convert_checkpoint_from_megatron_to_transformers(args)
     else:

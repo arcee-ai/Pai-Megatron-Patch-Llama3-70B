@@ -51,8 +51,8 @@ HIDDEN_SIZE=8192
 NUM_ATTN_HEADS=64
 INTERMEDIATE_SIZE=28672
 NUM_KV_HEADS=8
-VOCAB_SIZE=32000
-ROPE_THETA=10000
+VOCAB_SIZE=128256
+ROPE_THETA=500000
 gqa_options=" \
 		    --group-query-attention \
 		    --num-query-groups 8"
@@ -96,6 +96,7 @@ if [ $mg2hf = true ]; then
 elif [ $mg2hf = false ]; then
     convert_options=""
 fi
+
 
 template_json="./hf_llama_moe/config_TEMPLATE.json"
 config_json="./hf_llama_moe/config.json"

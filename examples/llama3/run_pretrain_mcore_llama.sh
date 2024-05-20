@@ -62,6 +62,21 @@ gqa_options=" \
 
 fi
 
+if [ $MODEL_SIZE = 70B ]; then
+
+NUM_LAYERS=80
+HIDDEN_SIZE=8192
+NUM_ATTN_HEADS=64
+INTERMEDIATE_SIZE=28672
+NUM_KEY_VALUE_HEADS=8
+MAX_POSITION_EMBEDDINGS=8192
+
+gqa_options=" \
+		    --group-query-attention \
+		    --num-query-groups ${NUM_KEY_VALUE_HEADS}"
+
+fi
+
 if [ $AC = full ]; then
     activation_checkpoint_options=" \
 		    --recompute-method uniform \

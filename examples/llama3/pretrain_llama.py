@@ -170,9 +170,7 @@ def is_dataset_built_on_rank():
 
 def core_gpt_dataset_config_from_args(args):
     tokenizer = get_tokenizer()
-
-    print(tokenizer)
-
+    
     # return GPTDatasetConfig(
     #     random_seed=args.seed,
     #     sequence_length=args.seq_length,

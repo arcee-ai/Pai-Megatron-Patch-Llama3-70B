@@ -16,6 +16,7 @@ from megatron.core.datasets.gpt_dataset import GPTDatasetConfig
 from megatron.core.datasets.gpt_dataset import MockGPTDataset, GPTDataset
 import megatron.legacy.model
 from megatron.training import pretrain
+from megatron.core.utils import StragglerDetector
 from megatron.core.transformer.spec_utils import import_module
 from megatron.training.utils import (
     get_batch_on_this_cp_rank,
@@ -24,8 +25,6 @@ from megatron.training.utils import (
 )
 from megatron.training.arguments import core_transformer_config_from_args
 
-from megatron_patch.data.utils import get_batch_on_this_tp_rank_original
-from megatron_patch.data import build_pretrain_dataset_from_original
 
 from megatron_patch.arguments import get_patch_args
 from megatron_patch.tokenizer import get_tokenizer, build_tokenizer
@@ -37,6 +36,8 @@ from megatron.core.models.gpt.gpt_layer_specs import (
 
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
+
+stimer = StragglerDetector()
 
 def model_provider(pre_process=True, post_process=True) -> Union[GPTModel, megatron.legacy.model.GPTModel]:
     """Builds the model.

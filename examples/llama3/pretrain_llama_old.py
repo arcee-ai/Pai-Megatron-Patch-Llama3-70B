@@ -25,15 +25,10 @@ from megatron.training.arguments import core_transformer_config_from_args
 
 from megatron_patch.data.utils import get_batch_on_this_tp_rank_original
 from megatron_patch.data import build_pretrain_dataset_from_original
-
+from megatron_patch.model.qwen1_5.layer_specs import get_gpt_layer_with_transformer_engine_spec
+from megatron_patch.model.qwen1_5.model import GPTModel
 from megatron_patch.arguments import get_patch_args
 from megatron_patch.tokenizer import get_tokenizer, build_tokenizer
-
-from megatron.core.models.gpt import GPTModel
-from megatron.core.models.gpt.gpt_layer_specs import (
-    get_gpt_layer_with_transformer_engine_spec
-)
-
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
 
@@ -54,26 +49,38 @@ def model_provider(pre_process=True, post_process=True) -> Union[GPTModel, megat
     build_tokenizer(args)
     print_rank_0('building GPT model ...')
     # Experimental loading arguments from yaml
-
     config = core_transformer_config_from_args(args)
+    if args.use_mcore_models:
+        if args.spec is not None:
+            transformer_layer_spec = import_module(args.spec)
+        else:
+            transformer_layer_spec = get_gpt_layer_with_transformer_engine_spec(args.num_experts, args.moe_grouped_gemm)
 
-    transformer_layer_spec = get_gpt_layer_with_transformer_engine_spec(args.num_experts, args.moe_grouped_gemm, args.qk_layernorm)
-
-    model = GPTModel(
-        config=config,
-        transformer_layer_spec=transformer_layer_spec,
-        vocab_size=args.padded_vocab_size,
-        max_sequence_length=args.max_position_embeddings,
-        pre_process=pre_process,
-        post_process=post_process,
-        fp16_lm_cross_entropy=args.fp16_lm_cross_entropy,
-        parallel_output=True,
-        share_embeddings_and_output_weights=not args.untie_embeddings_and_output_weights,
-        position_embedding_type=args.position_embedding_type,
-        rotary_percent=args.rotary_percent,
-        rotary_base=args.rotary_base,
-        seq_len_interpolation_factor=args.rotary_seq_len_interpolation_factor
-    )
+        model = GPTModel(
+            config=config,
+            transformer_layer_spec=transformer_layer_spec,
+            vocab_size=args.padded_vocab_size,
+            max_sequence_length=args.max_position_embeddings,
+            pre_process=pre_process,
+            post_process=post_process,
+            fp16_lm_cross_entropy=args.fp16_lm_cross_entropy,
+            parallel_output=True,
+            share_embeddings_and_output_weights=not args.untie_embeddings_and_output_weights,
+            position_embedding_type=args.position_embedding_type,
+            rotary_percent=args.rotary_percent,
+            rotary_base=args.rotary_base,
+            seq_len_interpolation_factor=args.rotary_seq_len_interpolation_factor
+        )
+    else:
+        assert(args.context_parallel_size == 1), "Context parallelism is only supported with Megatron Core!"
+        from megatron_patch.model.llama3.gpt_model import GPTModel as GPTModelX
+        model = GPTModelX(
+            config,
+            num_tokentypes=0,
+            parallel_output=True,
+            pre_process=pre_process,
+            post_process=post_process
+        )
 
     return model
 

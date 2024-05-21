@@ -13,19 +13,19 @@ PAD_LEN=128                                                                     
 EXTRA_VOCAB_SIZE=256                                                            # Extra vocabulary size
 PR=bf16                                                                         # Precision: fp16, bf16
 TP=8                                                                            # Tensor Parallelism
-PP=4                                                                            # Pipeline Parallelism
+PP=1                                                                            # Pipeline Parallelism
 AC=sel                                                                          # Activation checkpoint mode: sel, full
 DO=true                                                                         # Use Megatron Zero-1 optimizer: true, false
 FL=false                                                                        # Use Flash Attention: true, false
 SP=false                                                                        # Use sequence parallelism: true, false
-TE=false                                                                        # Use Transformer Engine: true, false
+TE=true                                                                         # Use Transformer Engine: true, false
 MOE=false                                                                       # Enable MOE: true, false
 SAVE_INTERVAL=5000                                                              # Checkpoint save interval
-DATASET_PATH=/mnt/llama3-datasets/wudao_llama3bpe_content_document              # Training dataset path
-PRETRAIN_CHECKPOINT_PATH=/mnt/llama3-ckpts/Meta-Llama-3-8B-to-mcore-tp4-pp1     # Pretrained model path
-TRAIN_TOKENS=100000000                    # Number of training tokens
-WARMUP_TOKENS=10000                       # Number of warmup tokens
-OUTPUT_BASEPATH=/mnt/output_mcore_llama3  # Output path for training results
+DATASET_PATH=/workspace/llama3-70B-checkpoints/llama3_data/SlimPajama_llamabpe_text_document     # Training dataset path
+PRETRAIN_CHECKPOINT_PATH=/workspace/llama3-70B-checkpoints/Meta-Llama-3-70B-to-mcore-tp8-pp4     # Pretrained model path
+TRAIN_TOKENS=100000000                                                                           # Number of training tokens
+WARMUP_TOKENS=10000                                                                              # Number of warmup tokens
+OUTPUT_BASEPATH=/workspace/llama3-70B-checkpoints/trained_ckpt  # Output path for training results
 
 # Running the pretrain script
 bash run_pretrain_mcore_llama.sh \

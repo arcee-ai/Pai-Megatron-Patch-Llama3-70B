@@ -638,7 +638,7 @@ def convert_checkpoint_from_megatron_to_transformers(args):
         path = 'model'
         # Extract the layers.
         for key, val in get_element_from_dict_by_path(tp_state_dicts[0], path).items():
-            if key.endswith('_extra_state'):
+            if key.endswith('_extra_state') and not key.endswith('layer_norm_weight'):
                 continue
             if 'linear_fc' in key:
                 print(key)
@@ -704,7 +704,7 @@ def convert_checkpoint_from_megatron_to_transformers(args):
 
             # For layernorm(s), simply store the layer norm.
             if op_name.endswith("layer_norm_weight") or op_name.endswith("layernorm"):
-                ln_name = "input_layernorm" if op_name.endswith("layer_norm_weight") else "post_attention_layernorm"
+                ln_name = "post_attention_layernorm" if op_name.endswith("mlp.linear_fc1.layer_norm_weight") else "input_layernorm"
                 output_state_dict[layer_name + "." + ln_name + "." + weight_or_bias] = params.clone()
                 continue
 

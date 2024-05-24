@@ -638,9 +638,9 @@ def convert_checkpoint_from_megatron_to_transformers(args):
         path = 'model'
         # Extract the layers.
         for key, val in get_element_from_dict_by_path(tp_state_dicts[0], path).items():
-            if key.endswith('_extra_state') and not key.endswith('layer_norm_weight'):
+            if key.endswith('_extra_state'):
                 continue
-            if 'linear_fc' in key:
+            if 'linear_fc' in key and not key.endswith('layer_norm_weight'):
                 print(key)
                 key_list = key.split('.')
                 layer_id = int(key_list[2]) + pp_rank * num_layers
